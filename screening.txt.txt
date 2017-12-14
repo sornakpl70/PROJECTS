@@ -1,0 +1,128 @@
+var srcurl = document.currentScript.src;
+ var spliting = srcurl.split('?');
+ var solution = spliting[1].split('/');
+ var makeurl = spliting[0] + '?' + solution[0] + '/' + solution[1] + '/';
+ 
+ var sold= solution[0];
+ 
+ var Job1= angular.module("Job1", ['ngMaterial','md.data.table','ngAnimate','flash','masterApp','ngFileUpload','ngTouch','ui.router']);
+ 
+ Job1.constant('solution', sold);
+ Job1.constant('makeurl', makeurl);
+ 
+ Job1.run(function ($rootScope,makeurl,$http) {
+ $rootScope.makeurl = makeurl;
+  $rootScope.loading = 0;
+   $rootScope.solution = sold;
+   console.log($rootScope.solution);
+ });
+ 
+ 
+ Job1.config(function ($stateProvider, $urlRouterProvider) {
+
+        $urlRouterProvider.otherwise("/");
+
+        $stateProvider
+            .state('outPatientInfo', {
+                url: "/",
+                templateUrl: makeurl + 'partials/main.xhtml'
+                
+            })
+            .state('documents', {
+                url: "/documents",
+                templateUrl: makeurl + 'partials/documents.xhtml'
+                
+            })
+            //  .state('requestScreenings', {
+            //     url: "/requestScreenings",
+            //     templateUrl: makeurl + 'partials/requestScreenings.xhtml'
+                
+            // });
+             
+    }),
+
+ 
+ 
+ 
+         
+         
+ 
+
+
+Job1.controller("Job1Ctrl",function ($scope, $timeout, $http, makeurl,$rootScope,Flash,master,appdetails,Upload) {
+    
+   $rootScope.parameter = master.parameters();
+ 
+ 
+    function xml2json(response) {
+        var x2js = new X2JS({
+            arrayAccessFormPaths: [
+            
+                  ]
+        });
+        return x2js.xml_str2json(response.data);
+    }
+ 
+    function json2xml(data) {
+        var js2x = new X2JS();     
+        return js2x.json2xml_str(JSON.parse(data));
+    }
+    
+    function errFunction(response) {
+            Flash.create('danger', response.status + response.statusText + response.headers);
+        }
+
+ $scope.query = {
+         order: 'jobId',
+         limit: 10, 
+         page: 1
+         };
+         
+         
+ $scope.retriveData = function () {
+             $rootScope.loading++;
+              $http({
+                method: "POST",
+                url: makeurl + "service/retrivePatientsScreening.xq",
+                data: '<data>' + master.parameters() + '</data>',
+                headers: {
+                    'Content-Type': 'application/xml'
+                }
+            }).then(function (response) {
+                var responseRecentJson =xml2json(response);
+                   $rootScope.retrivePatientsScreening = responseRecentJson.data.screeningProcess;  
+               console.log($rootScope.retrivePatientsScreening);
+            });
+
+
+     
+        };
+        
+ $scope.retriveData();
+ 
+ 
+ 
+ $rootScope.callStaticData = function () {
+      $rootScope.loading++;
+            $scope.type="static";
+            return $http({
+                method: "POST",
+                url: makeurl + "service/static.xq",
+                data: '<data><type>' + $scope.type + '</type></data>',
+                headers: {
+                    'Content-Type': 'application/xml'
+                }
+            }).then(function (response) {
+                var responseStaticJson =xml2json(response);
+                $scope.retrivePatientsScreening = responseStaticJson.data.screeningProcess;
+                $scope.mySubscriptioncount = responseStaticJson.data.screeningProcess.length;
+            },function errorCallback(response) {
+                errFunction(response);
+            })
+                .finally(function () {
+                    $rootScope.loading--;
+                });
+        };
+
+ 
+});
